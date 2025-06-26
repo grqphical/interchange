@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/fsnotify/fsnotify"
@@ -36,6 +36,8 @@ func buildHTTPRouter() chi.Router {
 }
 
 func main() {
+	logger := slog.New(&ApplicationLogHandler{})
+
 	flag.Bool("production", false, "Sets the reverse proxy to run in production mode disabling things such as config reloading")
 
 	flag.Parse()
@@ -50,19 +52,19 @@ func main() {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Println("Warning: No interchange.toml file found, reverting to default settings")
+		logger.Warn("no interchange.toml found, using default configuration")
 	}
 
 	viper.OnConfigChange(func(in fsnotify.Event) {
-		log.Println("Info: config file changed, reloading config")
+		logger.Info("config changed, reloading config")
 	})
 
 	if !viper.GetBool("production") {
-		log.Println("Warning: Interchange is running in development mode. Do not use this in production, instead pass the CLI flag '--production'")
+		logger.Warn("Interchange is running in development mode. Do not use this in production, instead pass the CLI flag '--production'")
 		viper.WatchConfig()
 	}
 
-	log.Printf("Info: Starting Interchange on %s:%d\n", viper.GetString("hostAddress"), viper.GetInt("port"))
+	logger.Info(fmt.Sprintf("Starting Interchange on %s:%d", viper.GetString("hostAddress"), viper.GetInt("port")))
 
 	server := http.Server{
 		Handler: buildHTTPRouter(),
