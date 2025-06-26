@@ -40,6 +40,7 @@ func main() {
 	})
 
 	if !viper.GetBool("production") {
+		log.Println("Warning: Interchange is running in development mode. Do not use this in production, instead pass the CLI flag '--production'")
 		viper.WatchConfig()
 	}
 
