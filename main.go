@@ -89,7 +89,7 @@ serviceLoop:
 			slog.Info(fmt.Sprintf("loaded service '%s' of type '%s'", name, serviceType))
 
 		default:
-			slog.Error("ConfigurationError", "err", fmt.Sprintf("invalid mode set on service '%s'"))
+			slog.Error("ConfigurationError", "err", fmt.Sprintf("invalid mode set on service '%s'", name))
 
 		}
 	}
@@ -117,10 +117,13 @@ func main() {
 	logger := slog.New(&ApplicationLogHandler{})
 	slog.SetDefault(logger)
 
-	flag.Bool("production", false, "Sets the reverse proxy to run in production mode disabling things such as config reloading")
+	prod := flag.Bool("production", false, "Sets the reverse proxy to run in production mode disabling things such as config reloading")
 
 	flag.Parse()
-	viper.BindPFlags(flag.CommandLine)
+
+	if *prod {
+		viper.Set("developmentMode", false)
+	}
 
 	setDefaultConfig()
 
