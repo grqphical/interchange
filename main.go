@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"time"
@@ -44,6 +46,52 @@ func buildHTTPRouter(logger *ApplicationLogHandler) chi.Router {
 		})
 	}
 
+serviceLoop:
+	for name, service := range viper.GetStringMap("services") {
+		service := service.(map[string]any)
+		serviceType, exists := service["mode"]
+		if !exists {
+			slog.Error("ConfigurationError", "err", fmt.Sprintf("mode not set on service '%s'", name))
+			continue serviceLoop
+		}
+
+		route, exists := service["route"]
+		if !exists {
+			slog.Error("ConfigurationError", "err", fmt.Sprintf("route not set on service '%s'", name))
+			continue serviceLoop
+		}
+
+		switch serviceType.(string) {
+		case "reverseProxy":
+			target, exists := service["target"]
+			if !exists {
+				slog.Error("ConfigurationError", "err", fmt.Sprintf("target not set on service '%s'", name))
+				continue serviceLoop
+			}
+
+			targetURL, err := url.ParseRequestURI(target.(string))
+			if err != nil {
+				slog.Error("ConfigurationError", "err", fmt.Sprintf("target is invalid URL on service '%s'", name))
+				continue serviceLoop
+			}
+
+			proxy := &httputil.ReverseProxy{
+				Rewrite: func(r *httputil.ProxyRequest) {
+					r.SetURL(targetURL)
+
+					r.SetXForwarded()
+				},
+			}
+
+			r.Handle(route.(string), proxy)
+			slog.Info(fmt.Sprintf("loaded service '%s' of type '%s'", name, serviceType))
+
+		default:
+			slog.Error("ConfigurationError", "err", fmt.Sprintf("invalid mode set on service '%s'"))
+
+		}
+	}
+
 	return r
 }
 
@@ -56,7 +104,7 @@ func startServer() *http.Server {
 	go func() {
 		slog.Info(fmt.Sprintf("Starting Interchange on %s:%d", viper.GetString("hostAddress"), viper.GetInt("port")))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("error while starting server", "err", err)
+			slog.Error("Failed to start server", "err", err)
 		}
 	}()
 

@@ -61,7 +61,13 @@ func (h *ApplicationLogHandler) Handle(_ context.Context, r slog.Record) error {
 		levelColour = Red
 	}
 
-	fmt.Printf("[%s%s%s] %s %s\n", levelColour, r.Level.String(), Reset, r.Time.Format(time.RFC3339), r.Message)
+	err, exists := logEntry.Attrs["err"]
+	if exists {
+		fmt.Printf("[%s%s%s] %s %s: %s\n", levelColour, r.Level.String(), Reset, r.Time.Format(time.RFC3339), r.Message, err)
+	} else {
+		fmt.Printf("[%s%s%s] %s %s\n", levelColour, r.Level.String(), Reset, r.Time.Format(time.RFC3339), r.Message)
+	}
+
 	return nil
 }
 
