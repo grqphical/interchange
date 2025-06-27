@@ -80,6 +80,8 @@ serviceLoop:
 					r.SetURL(targetURL)
 
 					r.SetXForwarded()
+
+					r.Out.Header.Set("Via", fmt.Sprintf("%s interchange", r.In.Proto))
 				},
 			}
 
