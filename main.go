@@ -129,7 +129,7 @@ func main() {
 
 	viper.SetConfigName("interchange")
 	viper.SetConfigType("toml")
-	viper.AddConfigPath("$HOME/.config/interchange")
+	//viper.AddConfigPath("$HOME/.config/interchange")
 	viper.AddConfigPath(".")
 
 	err := viper.ReadInConfig()
@@ -149,7 +149,7 @@ func main() {
 		server = startServer()
 	})
 
-	if !viper.GetBool("production") {
+	if viper.GetBool("developmentMode") {
 		logger.Warn("Interchange is running in development mode. Do not use this in production, instead pass the CLI flag '--production'")
 		viper.WatchConfig()
 	}
