@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-chi/chi/v5"
@@ -43,6 +47,22 @@ func buildHTTPRouter(logger *ApplicationLogHandler) chi.Router {
 	return r
 }
 
+func startServer() *http.Server {
+	server := http.Server{
+		Handler: buildHTTPRouter(slog.Default().Handler().(*ApplicationLogHandler)),
+		Addr:    fmt.Sprintf("%s:%d", viper.GetString("hostAddress"), viper.GetInt("port")),
+	}
+
+	go func() {
+		slog.Info(fmt.Sprintf("Starting Interchange on %s:%d", viper.GetString("hostAddress"), viper.GetInt("port")))
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("error while starting server", "err", err)
+		}
+	}()
+
+	return &server
+}
+
 func main() {
 	logger := slog.New(&ApplicationLogHandler{})
 	slog.SetDefault(logger)
@@ -64,10 +84,16 @@ func main() {
 		logger.Warn("no interchange.toml found, using default configuration")
 	}
 
-	viper.Set("logger", logger)
+	server := startServer()
 
 	viper.OnConfigChange(func(in fsnotify.Event) {
 		logger.Info("config changed, reloading config")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			slog.Error("failed to shutdown server", "err", err)
+		}
+		server = startServer()
 	})
 
 	if !viper.GetBool("production") {
@@ -75,13 +101,13 @@ func main() {
 		viper.WatchConfig()
 	}
 
-	logger.Info(fmt.Sprintf("Starting Interchange on %s:%d", viper.GetString("hostAddress"), viper.GetInt("port")))
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
 
-	server := http.Server{
-		Handler: buildHTTPRouter(logger.Handler().(*ApplicationLogHandler)),
-		Addr:    fmt.Sprintf("%s:%d", viper.GetString("hostAddress"), viper.GetInt("port")),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		slog.Error("failed to shutdown server", "err", err)
 	}
-
-	server.ListenAndServe()
-
 }
