@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -20,7 +21,7 @@ func setDefaultConfig() {
 	viper.SetDefault("developmentMode", true)
 }
 
-func buildHTTPRouter() chi.Router {
+func buildHTTPRouter(logger *ApplicationLogHandler) chi.Router {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -30,6 +31,13 @@ func buildHTTPRouter() chi.Router {
 
 	if viper.GetBool("developmentMode") {
 		r.Get("/debug", handlers.DebugHandler)
+		r.Get("/debug/log", func(w http.ResponseWriter, r *http.Request) {
+			err := json.NewEncoder(w).Encode(logger.records)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		})
 	}
 
 	return r
@@ -37,6 +45,7 @@ func buildHTTPRouter() chi.Router {
 
 func main() {
 	logger := slog.New(&ApplicationLogHandler{})
+	slog.SetDefault(logger)
 
 	flag.Bool("production", false, "Sets the reverse proxy to run in production mode disabling things such as config reloading")
 
@@ -55,6 +64,8 @@ func main() {
 		logger.Warn("no interchange.toml found, using default configuration")
 	}
 
+	viper.Set("logger", logger)
+
 	viper.OnConfigChange(func(in fsnotify.Event) {
 		logger.Info("config changed, reloading config")
 	})
@@ -67,7 +78,7 @@ func main() {
 	logger.Info(fmt.Sprintf("Starting Interchange on %s:%d", viper.GetString("hostAddress"), viper.GetInt("port")))
 
 	server := http.Server{
-		Handler: buildHTTPRouter(),
+		Handler: buildHTTPRouter(logger.Handler().(*ApplicationLogHandler)),
 		Addr:    fmt.Sprintf("%s:%d", viper.GetString("hostAddress"), viper.GetInt("port")),
 	}
 
