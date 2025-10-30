@@ -6,6 +6,12 @@ import (
 	"net/http"
 )
 
+type InterchangeStaticFSHandler struct{}
+
+func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "url: %s\n", r.RequestURI)
+}
+
 func BuildStaticFileSystemHandler(service map[string]any, name string, route string) (http.Handler, bool) {
 	dir, exists := service["directory"]
 	if !exists {
@@ -14,4 +20,6 @@ func BuildStaticFileSystemHandler(service map[string]any, name string, route str
 	}
 
 	slog.Info("Serving static files", "route", route, "directory", dir)
+
+	return InterchangeStaticFSHandler{}, true
 }

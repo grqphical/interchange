@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -73,7 +74,15 @@ serviceLoop:
 				continue
 			}
 
-			r.Handle(route.(string), fs)
+			routeStr := route.(string)
+
+			if strings.HasSuffix(routeStr, "/") {
+				routeStr += "*"
+			} else if !strings.HasSuffix(routeStr, "/*") {
+				routeStr += "/*"
+			}
+
+			r.Handle(routeStr, fs)
 
 		default:
 			slog.Error("ConfigurationError", "err", fmt.Sprintf("invalid mode set on service '%s'", name))
@@ -117,7 +126,7 @@ func main() {
 
 	viper.SetConfigName("interchange")
 	viper.SetConfigType("toml")
-	//viper.AddConfigPath("$HOME/.config/interchange")
+	// viper.AddConfigPath("$HOME/.config/interchange")
 	viper.AddConfigPath(".")
 
 	err := viper.ReadInConfig()
