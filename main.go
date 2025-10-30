@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"os/signal"
 	"time"
@@ -69,12 +67,19 @@ serviceLoop:
 			}
 
 			r.Handle(route.(string), proxy)
-			slog.Info(fmt.Sprintf("loaded service '%s' of type '%s'", name, serviceType))
+		case "staticFS":
+			fs, success := handlers.BuildStaticFileSystemHandler(service, name, route.(string))
+			if !success {
+				continue
+			}
+
+			r.Handle(route.(string), fs)
 
 		default:
 			slog.Error("ConfigurationError", "err", fmt.Sprintf("invalid mode set on service '%s'", name))
 
 		}
+		slog.Info(fmt.Sprintf("loaded service '%s' of type '%s'", name, serviceType))
 	}
 
 	return r
