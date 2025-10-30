@@ -69,17 +69,19 @@ serviceLoop:
 
 			r.Handle(route.(string), proxy)
 		case "staticFS":
-			fs, success := handlers.BuildStaticFileSystemHandler(service, name, route.(string))
+			routeStr := route.(string)
+
+			if !strings.HasSuffix(routeStr, "/") {
+				routeStr += "/"
+			}
+
+			fs, success := handlers.BuildStaticFileSystemHandler(service, name, routeStr)
 			if !success {
 				continue
 			}
 
-			routeStr := route.(string)
-
-			if strings.HasSuffix(routeStr, "/") {
+			if !strings.HasSuffix(routeStr, "*") {
 				routeStr += "*"
-			} else if !strings.HasSuffix(routeStr, "/*") {
-				routeStr += "/*"
 			}
 
 			r.Handle(routeStr, fs)
