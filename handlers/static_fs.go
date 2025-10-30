@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/grqphical/interchange/templates"
 )
 
 type InterchangeStaticFSHandler struct {
@@ -21,13 +23,13 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	fullFilePath := filepath.Join(i.directory, file)
 
 	if _, err := os.Stat(fullFilePath); errors.Is(err, os.ErrNotExist) {
-		fmt.Fprintf(w, "404 not found")
+		templates.WriteError(w, 404, "Not Found")
 		return
 	}
 
 	data, err := os.ReadFile(fullFilePath)
 	if err != nil {
-		fmt.Fprintf(w, "404 not found")
+		templates.WriteError(w, 500, "Internal Server Error")
 		return
 	}
 
