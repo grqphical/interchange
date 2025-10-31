@@ -14,8 +14,9 @@ import (
 )
 
 type InterchangeStaticFSHandler struct {
-	route     string
-	directory string
+	route        string
+	directory    string
+	showDirPages bool
 }
 
 func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -38,8 +39,12 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 				w.Write(data)
 				return
 			} else {
-				// TODO: add directory structure template
-				templates.WriteDirectoryTemplate(w, fullFilePath, r.RequestURI, i.directory)
+				if i.showDirPages {
+					templates.WriteDirectoryTemplate(w, fullFilePath, r.RequestURI, i.directory)
+				} else {
+					templates.WriteError(w, http.StatusNotFound, "Not Found")
+					return
+				}
 			}
 
 		} else {
@@ -66,8 +71,14 @@ func BuildStaticFileSystemHandler(service map[string]any, name string, route str
 		return nil, false
 	}
 
+	showDirPages, exists := service["showdirectorybrowser"]
+	if !exists {
+		showDirPages = true
+	}
+
 	return InterchangeStaticFSHandler{
 		route,
 		directory,
+		showDirPages.(bool),
 	}, true
 }
