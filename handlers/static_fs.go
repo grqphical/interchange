@@ -39,7 +39,7 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 				return
 			} else {
 				// TODO: add directory structure template
-				templates.WriteError(w, 600, "Directory")
+				templates.WriteDirectoryTemplate(w, fullFilePath, r.RequestURI)
 			}
 
 		} else {
