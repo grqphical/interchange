@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	serverString  string = "interchange/0.1.0"
-	errorTemplate string = `<!DOCTYPE html>
+	ServerVersionString string = "interchange/0.1.0"
+	errorTemplate       string = `<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -39,7 +39,7 @@ func WriteError(w http.ResponseWriter, code int, text string) {
 	params := errorParams{
 		Code:   code,
 		Text:   text,
-		Server: serverString,
+		Server: ServerVersionString,
 	}
 
 	tmpl := template.Must(template.New("error").Parse(errorTemplate))

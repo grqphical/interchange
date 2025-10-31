@@ -20,6 +20,8 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+var Version string = "interchange/0.1.0"
+
 // sets the default global configuration
 func setDefaultConfig() {
 	viper.SetDefault("port", 80)
@@ -122,8 +124,14 @@ func main() {
 	slog.SetDefault(logger)
 
 	prod := flag.Bool("production", false, "Sets the reverse proxy to run in production mode disabling things such as config reloading")
+	version := flag.Bool("version", false, "Prints the version")
 
 	flag.Parse()
+
+	if *version {
+		fmt.Printf("%s\n", Version)
+		return
+	}
 
 	if *prod {
 		viper.Set("developmentMode", false)

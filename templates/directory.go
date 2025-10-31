@@ -141,7 +141,7 @@ func WriteDirectoryTemplate(w http.ResponseWriter, dir string, baseURL string, b
 	params := directoryParams{
 		Files:     make([]fileInfo, len(files)),
 		Directory: dirTitleString,
-		Version:   serverString,
+		Version:   ServerVersionString,
 		IsRoot:    baseDirectory == dir,
 	}
 
