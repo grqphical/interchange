@@ -1,6 +1,6 @@
 module github.com/grqphical/interchange
 
-go 1.24.0
+go 1.25.3
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
