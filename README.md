@@ -13,6 +13,10 @@ Currently in active development
 - [ ] IP Blacklist/Whitelist
 - [ ] Load Balancing
 
+## Install
+
+Clone this repo and run `make build`
+
 ## Usage
 
 Create a `interchange.toml` in the same directory as `interchange`
