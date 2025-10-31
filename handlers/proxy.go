@@ -1,10 +1,16 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
+
+	"github.com/grqphical/interchange/templates"
 )
 
 // creates a new reverse proxy service based on the given user configuration
@@ -29,6 +35,23 @@ func BuildReverseProxyService(service map[string]any, name string) (*httputil.Re
 
 			r.Out.Header.Set("Via", fmt.Sprintf("%s interchange", r.In.Proto))
 		},
+	}
+
+	forwardErrors, exists := service["forwarderrors"]
+	if !exists {
+		forwardErrors = false
+	}
+
+	proxy.ModifyResponse = func(r *http.Response) error {
+		if r.StatusCode >= 400 && !forwardErrors.(bool) {
+			r.Body.Close()
+			var buf bytes.Buffer
+			templates.WriteError(&buf, r.StatusCode, http.StatusText(r.StatusCode))
+			r.Body = io.NopCloser(&buf)
+			r.Header.Set("Content-Type", "text/html")
+			r.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
+		}
+		return nil
 	}
 
 	return proxy, true

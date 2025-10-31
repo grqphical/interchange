@@ -2,7 +2,7 @@ package templates
 
 import (
 	"html/template"
-	"net/http"
+	"io"
 )
 
 const (
@@ -35,7 +35,7 @@ type errorParams struct {
 }
 
 // writes the error template to the given http.ResponseWriter
-func WriteError(w http.ResponseWriter, code int, text string) {
+func WriteError(w io.Writer, code int, text string) {
 	params := errorParams{
 		Code:   code,
 		Text:   text,
