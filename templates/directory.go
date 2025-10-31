@@ -63,6 +63,11 @@ const dirTemplate string = `<!DOCTYPE html>
 </head>
 <body>
     <h1 class="directory-header">{{ printf "Contents of %s/" .Directory }}</h1>
+    {{if not .IsRoot}}
+        <div style="text-align: center; margin: 20px;">
+            <a href="../" style="text-decoration: none; color: #fff; background-color: #007BFF; padding: 10px 20px; border-radius: 5px; font-size: 16px;">Go to Parent Directory</a>
+        </div>
+    {{end}}
     <table class="directory-table">
         <thead>
             <tr>
@@ -98,6 +103,7 @@ type directoryParams struct {
 	Files     []fileInfo
 	Directory string
 	Version   string
+	IsRoot    bool
 }
 
 func formatFileSize(size int64) string {
@@ -113,7 +119,7 @@ func formatFileSize(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
 
-func WriteDirectoryTemplate(w http.ResponseWriter, dir string, baseURL string) {
+func WriteDirectoryTemplate(w http.ResponseWriter, dir string, baseURL string, baseDirectory string) {
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -124,6 +130,7 @@ func WriteDirectoryTemplate(w http.ResponseWriter, dir string, baseURL string) {
 		Files:     make([]fileInfo, len(files)),
 		Directory: filepath.Base(dir),
 		Version:   serverString,
+		IsRoot:    baseDirectory == dir,
 	}
 
 	for i := 0; i < len(files); i++ {
