@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"time"
 
@@ -81,7 +82,9 @@ serviceLoop:
 				continue serviceLoop
 			}
 
-			r.Handle(route.(string), proxy)
+			route := path.Join(route.(string), "*")
+
+			r.Handle(route, proxy)
 		case "staticFS":
 			routeStr := route.(string)
 
