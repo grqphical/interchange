@@ -14,8 +14,9 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/grqphical/interchange/handlers"
+	"github.com/grqphical/interchange/middleware"
 	"github.com/grqphical/interchange/templates"
 	"github.com/spf13/viper"
 
@@ -36,10 +37,11 @@ func setDefaultConfig() {
 func buildHTTPRouter(logger *ApplicationLogHandler) chi.Router {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(chimiddleware.RequestID)
+	r.Use(chimiddleware.RealIP)
+	r.Use(middleware.BlacklistMiddleware)
+	r.Use(chimiddleware.Logger)
+	r.Use(chimiddleware.Recoverer)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		templates.WriteError(w, http.StatusNotFound, "Not Found")
