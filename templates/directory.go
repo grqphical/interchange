@@ -126,9 +126,16 @@ func WriteDirectoryTemplate(w http.ResponseWriter, dir string, baseURL string, b
 		return
 	}
 
+	var dirTitleString string
+	if dir == baseDirectory {
+		dirTitleString = filepath.Base(dir)
+	} else {
+		dirTitleString = filepath.Join(filepath.Base(baseDirectory), filepath.Base(dir))
+	}
+
 	params := directoryParams{
 		Files:     make([]fileInfo, len(files)),
-		Directory: filepath.Base(dir),
+		Directory: dirTitleString,
 		Version:   serverString,
 		IsRoot:    baseDirectory == dir,
 	}
