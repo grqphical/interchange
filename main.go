@@ -37,6 +37,7 @@ func buildHTTPRouter(logger *ApplicationLogHandler) chi.Router {
 	if viper.GetBool("developmentMode") {
 		r.Get("/debug", handlers.DebugHandler)
 		r.Get("/debug/log", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
 			err := json.NewEncoder(w).Encode(logger.records)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
