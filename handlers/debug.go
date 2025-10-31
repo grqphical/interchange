@@ -20,6 +20,7 @@ const debugHandlerTemplate string = `<!DOCTYPE html>
 </html>
 `
 
+// handles debug requests if the server is running in developmentMode
 func DebugHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(r.Header.Get("Accept"), "text/html") {
 		w.Header().Set("Content-Type", "text/html")

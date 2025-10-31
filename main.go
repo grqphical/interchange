@@ -20,12 +20,15 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+// sets the default global configuration
 func setDefaultConfig() {
 	viper.SetDefault("port", 80)
 	viper.SetDefault("hostAddress", "0.0.0.0")
 	viper.SetDefault("developmentMode", true)
 }
 
+// build a new HTTP router to be used by interchange, creating the debug handlers if developmentMode is true
+// and routing all the services defined in `interchange.toml`
 func buildHTTPRouter(logger *ApplicationLogHandler) chi.Router {
 	r := chi.NewRouter()
 
@@ -97,6 +100,7 @@ serviceLoop:
 	return r
 }
 
+// starts a new instance of the server on a new thread
 func startServer() *http.Server {
 	server := http.Server{
 		Handler: buildHTTPRouter(slog.Default().Handler().(*ApplicationLogHandler)),
@@ -139,6 +143,7 @@ func main() {
 
 	server := startServer()
 
+	// restart the server if the configuration is reloaded, ensuring the old server shuts down gracefully first
 	viper.OnConfigChange(func(in fsnotify.Event) {
 		logger.Info("config changed, reloading config")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -155,6 +160,7 @@ func main() {
 		viper.WatchConfig()
 	}
 
+	// handle Ctrl+C, Ctrl+D signals
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit

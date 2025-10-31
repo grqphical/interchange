@@ -7,6 +7,7 @@ import (
 	"net/url"
 )
 
+// creates a new reverse proxy service based on the given user configuration
 func BuildReverseProxyService(service map[string]any, name string) (*httputil.ReverseProxy, bool) {
 	target, exists := service["target"]
 	if !exists {

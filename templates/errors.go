@@ -27,12 +27,14 @@ const (
 </html>`
 )
 
+// parameters to be passed to the error template
 type errorParams struct {
 	Code   int
 	Text   string
 	Server string
 }
 
+// writes the error template to the given http.ResponseWriter
 func WriteError(w http.ResponseWriter, code int, text string) {
 	params := errorParams{
 		Code:   code,

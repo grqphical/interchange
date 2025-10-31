@@ -13,6 +13,7 @@ import (
 	"github.com/grqphical/interchange/templates"
 )
 
+// a custom static file handler for interchange
 type InterchangeStaticFSHandler struct {
 	route        string
 	directory    string
@@ -39,6 +40,7 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 				w.Write(data)
 				return
 			} else {
+				// show the directory browser if the user configured it to be shown
 				if i.showDirPages {
 					templates.WriteDirectoryTemplate(w, fullFilePath, r.RequestURI, i.directory)
 				} else {
@@ -65,7 +67,6 @@ func BuildStaticFileSystemHandler(service map[string]any, name string, route str
 		return nil, false
 	}
 
-	slog.Info("Serving static files", "route", route, "directory", dir)
 	directory, err := filepath.Abs(dir.(string))
 	if err != nil {
 		return nil, false

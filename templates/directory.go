@@ -92,6 +92,7 @@ const dirTemplate string = `<!DOCTYPE html>
 </body>
 </html>`
 
+// information about individual files to be used in the template
 type fileInfo struct {
 	Name    string
 	FileURL string
@@ -99,6 +100,7 @@ type fileInfo struct {
 	Date    string
 }
 
+// information about the current directory to be used in the template
 type directoryParams struct {
 	Files     []fileInfo
 	Directory string
@@ -106,6 +108,8 @@ type directoryParams struct {
 	IsRoot    bool
 }
 
+// takes in an integer file size (in bytes) and returns a formatted string that included the greatest size unit.
+// Example 1024 -> 1KB
 func formatFileSize(size int64) string {
 	const unit = 1024
 	if size < unit {
@@ -119,6 +123,7 @@ func formatFileSize(size int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
 }
 
+// write the directory browser template to the given http.ResponseWriter
 func WriteDirectoryTemplate(w http.ResponseWriter, dir string, baseURL string, baseDirectory string) {
 	files, err := os.ReadDir(dir)
 	if err != nil {
