@@ -145,6 +145,7 @@ func main() {
 		defer cancel()
 		if err := server.Shutdown(ctx); err != nil {
 			slog.Error("failed to shutdown server", "err", err)
+			return
 		}
 		server = startServer()
 	})
