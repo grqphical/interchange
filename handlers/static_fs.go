@@ -22,14 +22,29 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	file := strings.Replace(r.RequestURI, i.route, "", 1)
 	fullFilePath := filepath.Join(i.directory, file)
 
-	if _, err := os.Stat(fullFilePath); errors.Is(err, os.ErrNotExist) {
+	info, err := os.Stat(fullFilePath)
+	if errors.Is(err, os.ErrNotExist) {
 		templates.WriteError(w, 404, "Not Found")
 		return
 	}
 
 	data, err := os.ReadFile(fullFilePath)
 	if err != nil {
-		templates.WriteError(w, 500, "Internal Server Error")
+		if info.IsDir() {
+			// serve index.html from within the directory if it exists
+			data, err := os.ReadFile(filepath.Join(fullFilePath, "index.html"))
+			if err == nil {
+				w.Header().Set("Content-Type", "text/html")
+				w.Write(data)
+				return
+			} else {
+				// TODO: add directory structure template
+				templates.WriteError(w, 600, "Directory")
+			}
+
+		} else {
+			templates.WriteError(w, 500, "Internal Server Error")
+		}
 		return
 	}
 
