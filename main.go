@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/grqphical/interchange/handlers"
+	"github.com/grqphical/interchange/templates"
 	"github.com/spf13/viper"
 
 	flag "github.com/spf13/pflag"
@@ -38,6 +39,13 @@ func buildHTTPRouter(logger *ApplicationLogHandler) chi.Router {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		templates.WriteError(w, http.StatusNotFound, "Not Found")
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		templates.WriteError(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+	})
 
 	if viper.GetBool("developmentMode") {
 		r.Get("/debug", handlers.DebugHandler)
