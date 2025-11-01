@@ -24,12 +24,28 @@ import (
 )
 
 var Version string = "interchange/0.1.0"
+var ProxyTable map[string]string = make(map[string]string)
 
 // sets the default global configuration
 func setDefaultConfig() {
 	viper.SetDefault("port", 80)
 	viper.SetDefault("hostAddress", "0.0.0.0")
 	viper.SetDefault("developmentMode", true)
+}
+
+func checkServiceHealth() {
+	for name, ip := range ProxyTable {
+		resp, err := http.DefaultClient.Get(ip)
+		if err != nil {
+			slog.Error(fmt.Sprintf("Service '%s' is offline", name))
+			continue
+		}
+
+		if resp.StatusCode >= 500 {
+			slog.Error(fmt.Sprintf("Service '%s' is offline", name))
+			continue
+		}
+	}
 }
 
 // build a new HTTP router to be used by interchange, creating the debug handlers if developmentMode is true
@@ -86,6 +102,8 @@ serviceLoop:
 			}
 
 			route := path.Join(route.(string), "*")
+			target := service["target"]
+			ProxyTable[name] = target.(string)
 
 			r.Handle(route, proxy)
 		case "staticFS":
@@ -117,14 +135,29 @@ serviceLoop:
 }
 
 // starts a new instance of the server on a new thread
-func startServer() *http.Server {
+func startServer(ctx context.Context) *http.Server {
 	server := http.Server{
 		Handler: buildHTTPRouter(slog.Default().Handler().(*ApplicationLogHandler)),
 		Addr:    fmt.Sprintf("%s:%d", viper.GetString("hostAddress"), viper.GetInt("port")),
 	}
 
-	go func() {
+	go func(ctx context.Context) {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
 
+		checkServiceHealth()
+		for {
+			select {
+			case <-ticker.C:
+				checkServiceHealth()
+			case <-ctx.Done():
+				return
+			}
+		}
+
+	}(ctx)
+
+	go func() {
 		if viper.Get("https") != nil {
 			slog.Info(fmt.Sprintf("Starting Interchange with HTTPS on %s:%d", viper.GetString("hostAddress"), viper.GetInt("port")))
 			certFile := viper.GetString("https.certificate_file")
@@ -184,18 +217,21 @@ func main() {
 		logger.Warn("no interchange.toml found, using default configuration")
 	}
 
-	server := startServer()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	server := startServer(ctx)
 
 	// restart the server if the configuration is reloaded, ensuring the old server shuts down gracefully first
 	viper.OnConfigChange(func(in fsnotify.Event) {
 		logger.Info("config changed, reloading config")
+		ProxyTable = make(map[string]string)
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := server.Shutdown(ctx); err != nil {
 			slog.Error("failed to shutdown server", "err", err)
 			return
 		}
-		server = startServer()
+		server = startServer(ctx)
 	})
 
 	if viper.GetBool("developmentMode") {
@@ -208,7 +244,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		slog.Error("failed to shutdown server", "err", err)
