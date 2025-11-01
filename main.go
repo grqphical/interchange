@@ -37,11 +37,12 @@ func setDefaultConfig() {
 func buildHTTPRouter(logger *ApplicationLogHandler) chi.Router {
 	r := chi.NewRouter()
 
-	r.Use(chimiddleware.RequestID)
-	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.BlacklistMiddleware)
 	r.Use(chimiddleware.Logger)
+	r.Use(middleware.WhitelistMiddleware)
 	r.Use(chimiddleware.Recoverer)
+	r.Use(chimiddleware.RequestID)
+	r.Use(chimiddleware.RealIP)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		templates.WriteError(w, http.StatusNotFound, "Not Found")
