@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -18,6 +19,22 @@ type InterchangeStaticFSHandler struct {
 	route        string
 	directory    string
 	showDirPages bool
+	compression  string
+}
+
+func writeFileData(w http.ResponseWriter, data []byte, compression string) {
+	switch compression {
+	case "gzip":
+		w.Header().Set("Content-Encoding", "gzip")
+		cw := gzip.NewWriter(w)
+
+		cw.Write(data)
+		cw.Close()
+	case "":
+		w.Write(data)
+	default:
+		slog.Error("invalid compression type")
+	}
 }
 
 func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +54,9 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 			data, err := os.ReadFile(filepath.Join(fullFilePath, "index.html"))
 			if err == nil {
 				w.Header().Set("Content-Type", "text/html")
-				w.Write(data)
+
+				writeFileData(w, data, i.compression)
+
 				return
 			} else {
 				// show the directory browser if the user configured it to be shown
@@ -57,7 +76,7 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 
 	contentType := mime.TypeByExtension(filepath.Ext(fullFilePath))
 	w.Header().Set("Content-Type", contentType)
-	w.Write(data)
+	writeFileData(w, data, i.compression)
 }
 
 func BuildStaticFileSystemHandler(service map[string]any, name string, route string) (http.Handler, bool) {
@@ -76,10 +95,15 @@ func BuildStaticFileSystemHandler(service map[string]any, name string, route str
 	if !exists {
 		showDirPages = true
 	}
+	compression, exists := service["compression"]
+	if !exists {
+		compression = ""
+	}
 
 	return InterchangeStaticFSHandler{
 		route,
 		directory,
 		showDirPages.(bool),
+		compression.(string),
 	}, true
 }
