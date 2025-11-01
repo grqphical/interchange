@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -24,7 +23,27 @@ type InterchangeStaticFSHandler struct {
 	compressionLevel int
 }
 
-func writeFileData(w http.ResponseWriter, data []byte, compression string, compressionLevel int) {
+func writeFileData(w http.ResponseWriter, r *http.Request, data []byte, compression string, compressionLevel int) {
+	acceptedEncodings := r.Header.Values("Accept-Encoding")
+
+	// if the client does not suupport compression just write the data as is
+	if len(acceptedEncodings) == 0 {
+		w.Write(data)
+		return
+	}
+
+	supportsEncoding := false
+	for _, value := range acceptedEncodings {
+		if value == compression {
+			supportsEncoding = true
+		}
+	}
+
+	if !supportsEncoding {
+		w.Write(data)
+		return
+	}
+
 	switch compression {
 	case "gzip":
 		w.Header().Set("Content-Encoding", "gzip")
@@ -68,7 +87,7 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 			if err == nil {
 				w.Header().Set("Content-Type", "text/html")
 
-				writeFileData(w, data, i.compression, i.compressionLevel)
+				writeFileData(w, r, data, i.compression, i.compressionLevel)
 
 				return
 			} else {
@@ -87,9 +106,7 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	contentType := mime.TypeByExtension(filepath.Ext(fullFilePath))
-	w.Header().Set("Content-Type", contentType)
-	writeFileData(w, data, i.compression, i.compressionLevel)
+	writeFileData(w, r, data, i.compression, i.compressionLevel)
 }
 
 func BuildStaticFileSystemHandler(service map[string]any, name string, route string) (http.Handler, bool) {
