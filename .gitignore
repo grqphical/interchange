@@ -8,3 +8,6 @@ __pycache__/
 
 interchange
 dist/
+
+*.key
+*.crt
