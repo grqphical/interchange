@@ -123,7 +123,23 @@ serviceLoop:
 			}
 
 			r.Handle(routeStr, fs)
+		case "wsgi":
+			routeStr := route.(string)
 
+			if !strings.HasSuffix(routeStr, "/") {
+				routeStr += "/"
+			}
+
+			if !strings.HasSuffix(routeStr, "*") {
+				routeStr += "*"
+			}
+
+			wsgi, success := handlers.BuildWSGIHandler(service)
+			if !success {
+				continue
+			}
+
+			r.Handle(routeStr, wsgi)
 		default:
 			slog.Error("ConfigurationError", "err", fmt.Sprintf("invalid mode set on service '%s'", name))
 

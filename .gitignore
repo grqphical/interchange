@@ -3,7 +3,7 @@
 
 *.toml
 
-*.py
+test_server.py
 __pycache__/
 
 interchange
