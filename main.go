@@ -124,8 +124,9 @@ func startServer() *http.Server {
 	}
 
 	go func() {
-		slog.Info(fmt.Sprintf("Starting Interchange on %s:%d", viper.GetString("hostAddress"), viper.GetInt("port")))
+
 		if viper.Get("https") != nil {
+			slog.Info(fmt.Sprintf("Starting Interchange with HTTPS on %s:%d", viper.GetString("hostAddress"), viper.GetInt("port")))
 			certFile := viper.GetString("https.certificate_file")
 			if certFile == "" {
 				slog.Error("Failed to initialize HTTPS: certificate_file not specified")
@@ -142,6 +143,7 @@ func startServer() *http.Server {
 				slog.Error("Failed to start server", "err", err)
 			}
 		} else {
+			slog.Info(fmt.Sprintf("Starting Interchange on %s:%d", viper.GetString("hostAddress"), viper.GetInt("port")))
 			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				slog.Error("Failed to start server", "err", err)
 			}
