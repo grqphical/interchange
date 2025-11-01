@@ -12,6 +12,10 @@ func BlacklistMiddleware(next http.Handler) http.Handler {
 	blacklist := viper.GetStringSlice("blacklist")
 
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		if len(blacklist) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
 		for _, listIP := range blacklist {
 			remoteIPAndPort := r.RemoteAddr
 			remoteIP := strings.Split(remoteIPAndPort, ":")[0]

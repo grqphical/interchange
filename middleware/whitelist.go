@@ -12,6 +12,10 @@ func WhitelistMiddleware(next http.Handler) http.Handler {
 	whitelist := viper.GetStringSlice("whitelist")
 
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		if len(whitelist) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
 		var isValidIP = false
 		for _, listIP := range whitelist {
 			remoteIPAndPort := r.RemoteAddr
