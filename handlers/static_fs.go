@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"compress/flate"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -16,17 +17,29 @@ import (
 
 // a custom static file handler for interchange
 type InterchangeStaticFSHandler struct {
-	route        string
-	directory    string
-	showDirPages bool
-	compression  string
+	route            string
+	directory        string
+	showDirPages     bool
+	compression      string
+	compressionLevel int
 }
 
-func writeFileData(w http.ResponseWriter, data []byte, compression string) {
+func writeFileData(w http.ResponseWriter, data []byte, compression string, compressionLevel int) {
 	switch compression {
 	case "gzip":
 		w.Header().Set("Content-Encoding", "gzip")
 		cw := gzip.NewWriter(w)
+
+		cw.Write(data)
+		cw.Close()
+	case "deflate":
+		cw, err := flate.NewWriter(w, compressionLevel)
+		if err != nil {
+			slog.Error("failed to compress using deflate", "error", err.Error())
+			templates.WriteError(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+		w.Header().Set("Content-Encoding", "deflate")
 
 		cw.Write(data)
 		cw.Close()
@@ -55,7 +68,7 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 			if err == nil {
 				w.Header().Set("Content-Type", "text/html")
 
-				writeFileData(w, data, i.compression)
+				writeFileData(w, data, i.compression, i.compressionLevel)
 
 				return
 			} else {
@@ -76,7 +89,7 @@ func (i InterchangeStaticFSHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 
 	contentType := mime.TypeByExtension(filepath.Ext(fullFilePath))
 	w.Header().Set("Content-Type", contentType)
-	writeFileData(w, data, i.compression)
+	writeFileData(w, data, i.compression, i.compressionLevel)
 }
 
 func BuildStaticFileSystemHandler(service map[string]any, name string, route string) (http.Handler, bool) {
@@ -99,11 +112,16 @@ func BuildStaticFileSystemHandler(service map[string]any, name string, route str
 	if !exists {
 		compression = ""
 	}
+	compressionLevel, exists := service["compressionLevel"]
+	if !exists {
+		compressionLevel = 4
+	}
 
 	return InterchangeStaticFSHandler{
 		route,
 		directory,
 		showDirPages.(bool),
 		compression.(string),
+		compressionLevel.(int),
 	}, true
 }
