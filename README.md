@@ -10,7 +10,8 @@ Currently in active development
 - [x] Configuration from a single file
 - [x] Static File Hosting
 - [ ] Rate Limiting
-- [ ] IP Blacklist/Whitelist
+- [x] IP Blacklist/Whitelist
+- [x] WSGI support (Python webapp support)
 - [ ] Load Balancing
 
 ## Install
