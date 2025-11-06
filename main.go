@@ -60,6 +60,11 @@ func buildHTTPRouter(logger *ApplicationLogHandler) chi.Router {
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 
+	if viper.Get("rate_limiting") != nil {
+		r.Use(middleware.RateLimit)
+		slog.Info("enabling rate limiting")
+	}
+
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		templates.WriteError(w, http.StatusNotFound, "Not Found")
 	})
