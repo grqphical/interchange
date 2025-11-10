@@ -225,7 +225,7 @@ func main() {
 
 	viper.SetConfigName("interchange")
 	viper.SetConfigType("toml")
-	// viper.AddConfigPath("$HOME/.config/interchange")
+	viper.AddConfigPath("$HOME/.config/interchange")
 	viper.AddConfigPath(".")
 
 	err := viper.ReadInConfig()
